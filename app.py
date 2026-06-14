@@ -3,28 +3,38 @@ import streamlit as st
 from google import genai
 from google.genai import types
 
-st.set_page_config(page_title="Meu Chat Gemini", page_icon="🤖")
+st.set_page_config(page_title="Meu Chat Gemini Multiusuário", page_icon="🤖")
 st.title("🤖 Meu Chat com Gemini")
 
-# 1. Configuração Segura da API Key (Puxa dos Secrets do Streamlit Cloud)
-if "GEMINI_API_KEY" in st.secrets:
+# 1. Sistema de Chave Dinâmica (Traga sua própria API Key)
+if "GEMINI_API_KEY" in st.secrets and st.secrets["GEMINI_API_KEY"] != "":
     os.environ["GEMINI_API_KEY"] = st.secrets["GEMINI_API_KEY"]
 else:
-    # Caso você queira testar localmente antes de subir
-    os.environ["GEMINI_API_KEY"] = st.sidebar.text_input("Insira sua Gemini API Key:", type="password")
+    st.sidebar.header("🔑 Configuração")
+    chave_usuario = st.sidebar.text_input(
+        "Insira sua Gemini API Key para conversar:", 
+        type="password",
+        placeholder="AIzaSy..."
+    )
+    st.sidebar.markdown(
+        "[Pegue uma chave gratuita aqui](https://google.com)"
+    )
+    if chave_usuario:
+        os.environ["GEMINI_API_KEY"] = chave_usuario
 
 if not os.environ.get("GEMINI_API_KEY"):
-    st.info("Por favor, adicione sua API Key para começar.", icon="🔑")
+    st.info("👋 Bem-vindo! Para começar a conversar, insira sua **Gemini API Key** na barra lateral esquerda.", icon="👈")
     st.stop()
 
-# 2. Definição do Arquivo de Histórico Local no Servidor
-ARQUIVO_HISTORICO = "historico_chat.txt"
+# 2. Definição do Arquivo de Histórico Único por Usuário (Usa o final da chave como ID)
+id_usuario = os.environ.get("GEMINI_API_KEY")[-12:]
+ARQUIVO_HISTORICO = f"historico_{id_usuario}.txt"
 
 # 3. Inicializa as variáveis na memória da página (session_state)
 if "historico_visual" not in st.session_state:
     st.session_state.historico_visual = []
 
-# 4. FUNÇÃO: Tenta carregar o histórico salvo do arquivo texto ao iniciar o app
+# 4. FUNÇÃO: Carrega o histórico exclusivo deste usuário ao iniciar
 if "historico_carregado" not in st.session_state:
     if os.path.exists(ARQUIVO_HISTORICO):
         try:
@@ -44,7 +54,7 @@ if "historico_carregado" not in st.session_state:
 # 5. Barra Lateral com Opções
 with st.sidebar:
     st.header("⚙️ Opções")
-    if st.button("💾 Salvar Conversa Atual"):
+    if st.button("💾 Salvar Minha Conversa"):
         try:
             texto_final = ""
             for msg in st.session_state.historico_visual:
@@ -55,15 +65,21 @@ with st.sidebar:
             st.success("Histórico salvo com sucesso!")
         except Exception as e:
             st.error(f"Erro ao salvar: {e}")
+            
+    # BÔNUS: Botão para limpar o histórico se o usuário quiser recomeçar
+    if st.button("🗑️ Limpar Conversa Atual"):
+        st.session_state.historico_visual = []
+        if os.path.exists(ARQUIVO_HISTORICO):
+            os.remove(ARQUIVO_HISTORICO)
+        st.rerun()
 
-# 6. Exibe o histórico de mensagens na tela com o visual de chat do Streamlit
+# 6. Exibe o histórico de mensagens exclusivo na tela
 for message in st.session_state.historico_visual:
     with st.chat_message(message["role"]):
         st.markdown(message["content"])
 
 # 7. Entrada de novas mensagens e Processamento Direto
 if user_input := st.chat_input("Digite sua mensagem..."):
-    # Mostra e guarda o texto do usuário
     with st.chat_message("user"):
         st.markdown(user_input)
     st.session_state.historico_visual.append({"role": "user", "content": user_input})
@@ -71,10 +87,8 @@ if user_input := st.chat_input("Digite sua mensagem..."):
     with st.chat_message("assistant"):
         with st.spinner("Pensando..."):
             try:
-                # Cria um cliente limpo e novo a cada requisição
                 client = genai.Client()
                 
-                # Monta a estrutura de histórico exigida pelo método generate_content
                 historico_completo = []
                 for msg in st.session_state.historico_visual:
                     role_ia = "user" if msg["role"] == "user" else "model"
@@ -85,7 +99,6 @@ if user_input := st.chat_input("Digite sua mensagem..."):
                         )
                     )
                 
-                # Envia o bloco de histórico inteiro para a API responder contextualmente
                 response = client.models.generate_content(
                     model="gemini-2.5-flash",
                     contents=historico_completo
