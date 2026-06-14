@@ -91,6 +91,7 @@ if user_input := st.chat_input("Digite sua mensagem..."):
             try:
                 client = genai.Client()
                 
+                # Monta a estrutura de histórico
                 historico_completo = []
                 for msg in st.session_state.historico_visual:
                     role_ia = "user" if msg["role"] == "user" else "model"
@@ -100,6 +101,14 @@ if user_input := st.chat_input("Digite sua mensagem..."):
                             parts=[types.Part.from_text(text=msg["content"])]
                         )
                     )
+                
+                # Injeta um comando do sistema oculto para forçar formatação perfeita de código
+                instrucao_codigo = (
+                    "\n[SISTEMA: Se a resposta contiver códigos, sempre use blocos com a linguagem especificada "
+                    "ex: ```python ... ``` para que o usuário possa copiar facilmente.]"
+                )
+                if historico_completo:
+                    historico_completo[-1].parts[0].text += instrucao_codigo
                 
                 response = client.models.generate_content(
                     model="gemini-2.5-flash",
