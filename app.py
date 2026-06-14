@@ -118,13 +118,15 @@ if user_input := st.chat_input("Digite sua mensagem..."):
                         )
                     )
                 
-                # Instrução de formatação de código (Passo anterior)
+                               # Instrução de formatação de código corrigida
                 instrucao_codigo = (
                     "\n[SISTEMA: Se a resposta contiver códigos, sempre use blocos com a linguagem especificada "
                     "ex: ```python ... ``` para que o usuário possa copiar facilmente.]"
                 )
                 if historico_completo:
-                    historico_completo[-1].parts.text += instrucao_codigo
+                    # Altera o texto de forma correta acessando o primeiro item da lista de partes
+                    historico_completo[-1].parts[0].text += instrucao_codigo
+
                 
                 response = client.models.generate_content(
                     model="gemini-2.5-flash",
