@@ -16,9 +16,11 @@ else:
         type="password",
         placeholder="AIzaSy..."
     )
+        # Link direto para a criação de chaves do Google AI Studio
     st.sidebar.markdown(
-        "[Pegue uma chave gratuita aqui](https://google.com)"
+        "[Pegue uma chave gratuita aqui](https://aistudio.google.com/app/apikey)"
     )
+
     if chave_usuario:
         os.environ["GEMINI_API_KEY"] = chave_usuario
 
