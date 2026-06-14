@@ -17,7 +17,7 @@ if not os.environ.get("GEMINI_API_KEY"):
     st.info("Por favor, adicione sua API Key para começar.", icon="🔑")
     st.stop()
 
-# ⚠️ CORREÇÃO VITAL: Guardar o CLIENT na memória global para ele não fechar a conexão
+# Estabiliza o cliente de rede na memória de sessão do Streamlit
 if "gemini_client" not in st.session_state:
     st.session_state.gemini_client = genai.Client()
 
@@ -36,15 +36,20 @@ if "historico_carregado" not in st.session_state:
         try:
             with open(ARQUIVO_HISTORICO, "r", encoding="utf-8") as f:
                 linhas = f.readlines()
-            for ... in linhas:
-                # O processamento do arquivo continua igual...
-                pass
-            # (Código omitido para focar no erro principal, mantenha sua lógica de ler linhas aqui)
+            for linha in linhas:
+                if linha.startswith("Você: "):
+                    txt = linha.replace("Você: ", "").strip()
+                    st.session_state.historico_visual.append({"role": "user", "content": txt})
+                    st.session_state.mensagens_ia.append(types.Content(role="user", parts=[types.Part.from_text(text=txt)]))
+                elif linha.startswith("Gemini: "):
+                    txt = linha.replace("Gemini: ", "").strip()
+                    st.session_state.historico_visual.append({"role": "assistant", "content": txt})
+                    st.session_state.mensagens_ia.append(types.Content(role="model", parts=[types.Part.from_text(text=txt)]))
         except Exception as e:
             st.sidebar.error(f"Erro ao ler histórico: {e}")
     st.session_state.historico_carregado = True
 
-# 5. ⚠️ CORREÇÃO VITAL: Cria o chat usando o client guardado na sessão
+# 5. Cria o chat usando o cliente estabilizado na sessão
 if "chat_session" not in st.session_state:
     st.session_state.chat_session = st.session_state.gemini_client.chats.create(
         model="gemini-2.5-flash",
@@ -80,7 +85,6 @@ if user_input := st.chat_input("Digite sua mensagem..."):
     with st.chat_message("assistant"):
         with st.spinner("Pensando..."):
             try:
-                # Chamar o chat a partir do session_state estabilizado
                 response = st.session_state.chat_session.send_message(user_input)
                 st.markdown(response.text)
                 st.session_state.historico_visual.append({"role": "assistant", "content": response.text})
