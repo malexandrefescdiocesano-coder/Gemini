@@ -4,7 +4,7 @@
 
 # 🤖 Minha engine do Gemini
 
-**[Acesse a minha engine do Gemini!](https://gemini-q78dyeusxdznnvd8q8sqfsyahwidw.streamlit.app/)**
+**[Engine do Gemini](https://gemini-q78dyeusxdznnvd8q8sqfsyahwidw.streamlit.app/)**
 
 Uma aplicação interativa de chat desenvolvida com **Streamlit** que se conecta à API do Google Gemini utilizando a biblioteca oficial `google-genai`. O chat conta com persistência local de histórico por usuário, painel de estatísticas em tempo real e formatação inteligente de código.
 
